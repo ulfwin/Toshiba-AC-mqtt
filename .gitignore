@@ -134,3 +134,4 @@ dmypy.json
 # Misc
 toshiba_ac.bak
 toshiba_ac_to_mqtt_local.py
+credentials.py

@@ -291,7 +291,16 @@ class ToshibaAcDevice:
         if state.ac_temperature not in [ToshibaAcFcuState.AcTemperature.NONE, ToshibaAcFcuState.AcTemperature.UNKNOWN]:
             if future_state.ac_mode == ToshibaAcFcuState.AcMode.HEAT:
                 if future_state.ac_merit_a_feature == ToshibaAcFcuState.AcMeritAFeature.HEATING_8C:
-                    state.ac_temperature = ToshibaAcFcuState.AcTemperature(state.ac_temperature.value + 16)
+                    # automatically change heating mode based on temp value
+                    if 17 <= state.ac_temperature.value <= 30:
+                        state.ac_merit_a_feature = ToshibaAcFcuState.AcMeritAFeature.OFF
+                    else:
+                        state.ac_temperature = ToshibaAcFcuState.AcTemperature(state.ac_temperature.value + 16)
+                else:
+                    # automatically change heating mode based on temp value
+                    if 5 <= state.ac_temperature.value <= 13:
+                        state.ac_merit_a_feature = ToshibaAcFcuState.AcMeritAFeature.HEATING_8C
+                        state.ac_temperature = ToshibaAcFcuState.AcTemperature(state.ac_temperature.value + 16)
 
         if future_state.ac_mode != ToshibaAcFcuState.AcMode.HEAT:
             state.ac_merit_b_feature = ToshibaAcFcuState.AcMeritBFeature.OFF

@@ -29,24 +29,36 @@ import asyncio_mqtt
 from toshiba_ac.device_manager import ToshibaAcDeviceManager
 from toshiba_ac.fcu_state import ToshibaAcFcuState
 
-mqtt_server = 'your-mqtt-server'
-topic_root = 'ac'
+from credentials import *
+
+topic_root = '/house/livingroom/ac'
 status_suffix = 'status'
-status_topic = topic_root + '/' + status_suffix
+status_topic = topic_root + '/connection_status'
 cmd_suffix = 'cmd'
 cmd_topic = topic_root + '/' + cmd_suffix
 power_suffix = 'power'
 online_payload = 'online'
 offline_payload = 'offline'
-ac_username = 'Your-Toshiba-Username'
-ac_password = 'Your-Toshiba-Password'
+
+# Parameters to subscribe to
+subscribe_params = [
+    "mode",
+    "temperature",
+    "fan_mode",
+    "swing_mode",
+    "power_selection",
+    "merit_b_feature",
+    "merit_a_feature",
+]
 
 # Task for device specific commands
-async def handle_ac_device_cmd( messages, dev ):
+async def handle_ac_device_cmd( param, messages, dev ):
     async for msg in messages:
-        logger.info( f'Command for AC {dev.name}: {msg.payload}' )
-        new_state = ToshibaAcFcuState.from_dict_state( json.loads( msg.payload ) )
-        await dev.send_state_to_ac( new_state )
+    
+        logger.info( f'Command for AC {dev.name}, parameter {param}: {msg.payload}' )
+        
+        # Dynamically call the proper set method
+        await getattr(dev, f"set_ac_{param}")(msg.payload)
 
 # Energy updates should not happen
 async def energy_changed( dev ):
@@ -101,7 +113,7 @@ async def mqtt_ac_task():
         # Define last will
         will = asyncio_mqtt.Will( status_topic, offline_payload, 2, True )
         # Connect to the MQTT broker
-        client = asyncio_mqtt.Client( mqtt_server, logger=mqtt_logger, will=will )
+        client = asyncio_mqtt.Client( mqtt_server, username=mqtt_username, password=mqtt_password, logger=mqtt_logger, will=will )
         logger.debug( 'Connecting MQTT' )
         await stack.enter_async_context( client )
         # Register offline message callback
@@ -125,19 +137,27 @@ async def mqtt_ac_task():
         # Send updated power to MQTT
         async def power_changed( dev ):
             logger.debug( 'Power changed for device %s' % dev)
-            topic = f'{topic_root}/{dev.name}/{power_suffix}'
+            topic = f'{topic_root}/{power_suffix}'
             msg = json.dumps( {'Name': dev.name, 'Power': dev.ac_power})
             logger.debug( f'Sending MQTT power update with topic {topic}: {msg}' )
             await client.publish( topic, msg, 2 )
 
         # Send updated state to MQTT
         async def state_update( dev, state ):
-            topic = f'{topic_root}/{dev.name}/{status_suffix}'
-            state_flt = state.forJson()
+            state_flt = state.get_all_as_list()
             if state_flt:
-                msg = json.dumps( { 'Name': dev.name, 'Status': state_flt } )
-                logger.debug( f'Sending MQTT status update with topic {topic}: {msg}' )
-                await client.publish( topic, msg, 2 )
+                for param_name in state_flt:
+
+                    if hasattr(dev, param_name):
+                        param_val = getattr(dev, param_name)
+
+                        # Get name of parameter unless temperature (which is int)
+                        if type(param_val) != int:
+                            param_val = param_val.name
+
+                        topic = f'{topic_root}/{param_name.replace("ac_", "")}/{status_suffix}'
+                        logger.debug( f'Sending MQTT status update with topic {topic}: {param_val}' )
+                        await client.publish( topic, param_val, 2 )
             else:
                 logger.info( f'Not sending empty state update on topic {topic}' )
 
@@ -156,15 +176,18 @@ async def mqtt_ac_task():
             await device.state_changed()
             device.on_energy_consumption_changed_callback.add( energy_changed )
             device.on_power_changed_callback.add( power_changed )
-            # Start task to handle device specific commands
-            topic = f'{topic_root}/{device.name}/{cmd_suffix}'
-            logger.debug( f'Registering {topic} messages' )
-            ac_dev_cmd_messages = await stack.enter_async_context( client.filtered_messages( topic ) )
-            logger.debug( f'Starting task for {topic} messages' )
-            tasks.append( asyncio.create_task( handle_ac_device_cmd( ac_dev_cmd_messages, device ) ) )
-            # Subscribe to cmd_topic
-            logger.debug( f'Subscribing to {topic}' )
-            await client.subscribe( topic )
+
+            for param in subscribe_params:
+                # Start task to handle device specific commands
+                topic = f'{topic_root}/{param}/{cmd_suffix}'
+                #topic = f'{topic_root}/{device.name}/{cmd_suffix}'
+                logger.debug( f'Registering {topic} messages' )
+                ac_dev_cmd_messages = await stack.enter_async_context( client.filtered_messages( topic ) )
+                logger.debug( f'Starting task for {topic} messages' )
+                tasks.append( asyncio.create_task( handle_ac_device_cmd( param, ac_dev_cmd_messages, device ) ) )
+                # Subscribe to cmd_topic
+                logger.debug( f'Subscribing to {topic}' )
+                await client.subscribe( topic )
 
         # Send states of all devices
         async def state_update_all_dev( devices ):
