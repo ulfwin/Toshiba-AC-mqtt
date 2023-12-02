@@ -152,9 +152,8 @@ async def mqtt_ac_task():
                     if hasattr(dev, param_name):
                         param_val = getattr(dev, param_name)
 
-                        # Get name of parameter unless temperature (which is int)
-                        if type(param_val) != int:
-                            param_val = param_val.name
+                        # Get name of parameter
+                        param_val = param_val.name
 
                         topic = f'{topic_root}/{param_name.replace("ac_", "")}/{status_suffix}'
                         logger.debug( f'Sending MQTT status update with topic {topic}: {param_val}' )

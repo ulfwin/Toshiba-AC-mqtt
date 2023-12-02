@@ -357,7 +357,7 @@ class ToshibaAcDevice:
         if ret in [ToshibaAcFcuState.AcTemperature.NONE, ToshibaAcFcuState.AcTemperature.UNKNOWN]:
             return None
 
-        return ret.value
+        return ret
 
     async def set_ac_temperature(self, val):
         state = ToshibaAcFcuState()
@@ -440,7 +440,7 @@ class ToshibaAcDevice:
         if ret in [ToshibaAcFcuState.AcTemperature.NONE, ToshibaAcFcuState.AcTemperature.UNKNOWN]:
             return None
 
-        return ret.value
+        return ret
 
     @property
     def ac_outdoor_temperature(self):
@@ -449,7 +449,7 @@ class ToshibaAcDevice:
         if ret in [ToshibaAcFcuState.AcTemperature.NONE, ToshibaAcFcuState.AcTemperature.UNKNOWN]:
             return None
 
-        return ret.value
+        return ret
 
     @property
     def ac_self_cleaning(self):
