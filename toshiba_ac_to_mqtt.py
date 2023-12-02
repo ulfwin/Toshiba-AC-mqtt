@@ -42,6 +42,7 @@ offline_payload = 'offline'
 
 # Parameters to subscribe to
 subscribe_params = [
+    "status",
     "mode",
     "temperature",
     "fan_mode",

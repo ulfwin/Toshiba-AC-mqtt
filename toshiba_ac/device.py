@@ -323,7 +323,13 @@ class ToshibaAcDevice:
 
     async def set_ac_status(self, val):
         state = ToshibaAcFcuState()
-        state.ac_status = val
+
+        if val == b'ON':
+            state.ac_status = ToshibaAcFcuState.AcStatus.ON
+        elif val == b'OFF':
+            state.ac_status = ToshibaAcFcuState.AcStatus.OFF
+        else:
+            raise Exception(f"AC Status command not recognized: {val}")
 
         await self.send_state_to_ac(state)
 
