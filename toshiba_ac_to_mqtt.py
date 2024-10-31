@@ -14,11 +14,11 @@
 
 import logging
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
-logger.setLevel( logging.INFO )
+#logger.setLevel( logging.WARNING )
 mqtt_logger = logging.getLogger("MQTT")
-mqtt_logger.setLevel( logging.INFO )
+#mqtt_logger.setLevel( logging.WARNING )
 
 import asyncio
 import json

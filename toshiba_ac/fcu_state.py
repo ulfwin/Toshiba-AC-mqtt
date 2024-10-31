@@ -14,7 +14,7 @@
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel( logging.INFO )
+#logger.setLevel( logging.INFO )
 
 from enum import Enum
 import struct

@@ -18,7 +18,7 @@ import struct
 import random
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel( logging.INFO )
+#logger.setLevel( logging.INFO )
 
 from toshiba_ac.fcu_state import ToshibaAcFcuState
 from toshiba_ac.utils import async_sleep_until_next_multiply_of_minutes
